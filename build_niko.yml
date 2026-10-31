@@ -1,0 +1,57 @@
+name: Build Niko Android Bundle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract uploaded Unity project
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          archive = Path('Niko_GitHub_Tek_Dosya_Proje.zip')
+          assert archive.is_file(), 'Project ZIP was not found in repository root'
+          with ZipFile(archive) as z:
+              z.extractall('.')
+          root = Path('Niko_Android_Editor_Project')
+          assert (root/'Assets/Editor/BuildNikoAndroid.cs').is_file(), 'Unity build method missing'
+          assert (root/'Assets/NikoSource/niko.meshdata').is_file(), 'Niko mesh missing'
+          assert (root/'Assets/NikoSource/niko.png').is_file(), 'Niko texture missing'
+          assert (root/'ProjectSettings/ProjectVersion.txt').is_file(), 'Unity version missing'
+          print('Niko Unity project extracted.')
+          PY
+
+      - name: Build Android AssetBundle
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          projectPath: Niko_Android_Editor_Project
+          unityVersion: 2021.3.45f1
+          targetPlatform: Android
+          buildMethod: BuildNikoAndroid.Build
+
+      - name: Check created bundle
+        shell: bash
+        run: test -s Niko_Android_Editor_Project/Builds/Android/niko_android.bundle
+
+      - name: Upload Android bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: niko-android-bundle
+          path: Niko_Android_Editor_Project/Builds/Android/niko_android.bundle
+          if-no-files-found: error
