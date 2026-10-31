@@ -1,3 +1,4 @@
+
 name: Build Niko Android Bundle
 
 on:
@@ -44,6 +45,7 @@ jobs:
           unityVersion: 2021.3.45f1
           targetPlatform: Android
           buildMethod: BuildNikoAndroid.Build
+          versioning: None
 
       - name: Check created bundle
         shell: bash
@@ -55,3 +57,4 @@ jobs:
           name: niko-android-bundle
           path: Niko_Android_Editor_Project/Builds/Android/niko_android.bundle
           if-no-files-found: error
+          
